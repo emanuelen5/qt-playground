@@ -11,6 +11,7 @@ from ui.task_view import Ui_MainWindow
 
 class TableModel(QAbstractTableModel):
     HEADERS = ("Task name", )
+
     def __init__(self):
         super().__init__()
         self._data = [(False, "asd"), (False, "asd2"), (True, "other task")]
@@ -47,6 +48,7 @@ class TableModel(QAbstractTableModel):
 
 
 class ToDoList(QMainWindow):
+    # Emit a bool to indicate whether a row is selected or not
     row_selected = Signal(bool)
 
     def __init__(self):
@@ -78,6 +80,7 @@ class ToDoList(QMainWindow):
             tasknames = ", ".join([self.model._data[row][1] for row in rows])
             inp = QMessageBox.information(self, "Remove task?", f"Remove {len(rows)} task(s): {tasknames}?", buttons=QMessageBox.Yes | QMessageBox.No)
             if inp == QMessageBox.Yes:
+                # Must delete backwards otherwise they change indices along the way
                 for row in sorted(rows, reverse=True):
                     self.model.remove_task(row)
                 self.ui.tableview_tasks.clearSelection()
