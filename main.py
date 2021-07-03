@@ -4,7 +4,7 @@ from PySide6.QtWidgets import (
     QApplication, QMessageBox, QMainWindow, QPushButton,
     QTreeView, QHBoxLayout, QVBoxLayout, QWidget, QInputDialog, QTableView
 )
-from PySide6.QtCore import QSize, QAbstractTableModel, QModelIndex, QPersistentModelIndex, Qt
+from PySide6.QtCore import QSize, QAbstractTableModel, QModelIndex, QPersistentModelIndex, Qt, Signal, QItemSelection
 from ui.task_view import Ui_MainWindow
 
 
@@ -34,6 +34,8 @@ class TableModel(QAbstractTableModel):
 
 
 class ToDoList(QMainWindow):
+    row_selected = Signal(bool)
+
     def __init__(self):
         super().__init__()
         self.ui = Ui_MainWindow()
@@ -45,11 +47,12 @@ class ToDoList(QMainWindow):
 
         self.ui.btn_add_task.clicked.connect(self.add_task)
         self.ui.btn_task_done.clicked.connect(self.remove_task)
+        self.row_selected.connect(self.ui.btn_task_done.setEnabled)
 
-    def selection_changed(self, sel, dsel):
+    def selection_changed(self, sel: QItemSelection, dsel: QItemSelection):
         print(self.ui.tableview_tasks.selectionModel().selectedRows())
         print("Selection changed to: ", sel, dsel)
-        # self.button_remove_task.setEnabled
+        self.row_selected.emit(len(sel.indexes()) != 0)
 
     def add_task(self):
         taskname, got_input = QInputDialog.getText(self, "Task name", "What is the name of the task?", inputMethodHints=Qt.ImhPreferLatin)
@@ -65,6 +68,8 @@ class ToDoList(QMainWindow):
             if inp == QMessageBox.Yes:
                 for row in sorted(rows, reverse=True):
                     self.model.remove_task(row)
+                self.ui.tableview_tasks.clearSelection()
+                self.row_selected.emit(False)
 
 
 if __name__ == '__main__':
