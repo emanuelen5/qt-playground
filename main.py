@@ -5,23 +5,36 @@ from PySide6.QtWidgets import (
     QTreeView, QHBoxLayout, QVBoxLayout, QWidget, QInputDialog, QTableView
 )
 from PySide6.QtCore import QSize, QAbstractTableModel, QModelIndex, QPersistentModelIndex, Qt, Signal, QItemSelection
+from PySide6.QtGui import QIcon
 from ui.task_view import Ui_MainWindow
 
 
 class TableModel(QAbstractTableModel):
+    HEADERS = ("Task name", )
     def __init__(self):
         super().__init__()
-        self._data = [(False, "asd"), (False, "asd2")]
+        self._data = [(False, "asd"), (False, "asd2"), (True, "other task")]
 
     def data(self, index: QModelIndex, role: int):
+        status, name = self._data[index.row()]
         if role == Qt.DisplayRole:
-            return self._data[index.row()][index.column()]
+            return name
+
+        elif role == Qt.DecorationRole:
+            return QIcon.fromTheme("emblem-default") if status else QIcon.fromTheme("emblem-unreadable")
+
+    def headerData(self, section: int, orientation: Qt.Orientation, role: int):
+        if role == Qt.DisplayRole:
+            if orientation == Qt.Horizontal:
+                return self.HEADERS[section]
+            elif orientation == Qt.Vertical:
+                return
 
     def rowCount(self, index: QModelIndex) -> int:
         return len(self._data)
 
     def columnCount(self, index: QModelIndex) -> int:
-        return 2
+        return 1
 
     def add_task(self, taskname: str):
         self._data.append((False, taskname))
@@ -48,10 +61,9 @@ class ToDoList(QMainWindow):
         self.ui.btn_add_task.clicked.connect(self.add_task)
         self.ui.btn_task_done.clicked.connect(self.remove_task)
         self.row_selected.connect(self.ui.btn_task_done.setEnabled)
+        self.row_selected.emit(False)
 
     def selection_changed(self, sel: QItemSelection, dsel: QItemSelection):
-        print(self.ui.tableview_tasks.selectionModel().selectedRows())
-        print("Selection changed to: ", sel, dsel)
         self.row_selected.emit(len(sel.indexes()) != 0)
 
     def add_task(self):
