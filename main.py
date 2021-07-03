@@ -1,11 +1,11 @@
 import sys
-from typing import Union
 
 from PySide6.QtWidgets import (
     QApplication, QMessageBox, QMainWindow, QPushButton,
     QTreeView, QHBoxLayout, QVBoxLayout, QWidget, QInputDialog, QTableView
 )
 from PySide6.QtCore import QSize, QAbstractTableModel, QModelIndex, QPersistentModelIndex, Qt
+from ui.task_view import Ui_MainWindow
 
 
 class TableModel(QAbstractTableModel):
@@ -36,35 +36,18 @@ class TableModel(QAbstractTableModel):
 class ToDoList(QMainWindow):
     def __init__(self):
         super().__init__()
-
-        self.tree = QTableView()
+        self.ui = Ui_MainWindow()
+        self.ui.setupUi(self)
         self.model = TableModel()
-        self.tree.setModel(self.model)
+        self.ui.tableview_tasks.setModel(self.model)
 
-        self.button_add_task = QPushButton(text="Add task")
-        self.button_add_task.clicked.connect(self.add_task)
-        self.button_remove_task = QPushButton(text="Remove task")
-        self.button_remove_task.clicked.connect(self.remove_task)
+        self.ui.tableview_tasks.selectionModel().selectionChanged.connect(self.selection_changed)
 
-        self.tree.selectionModel().selectionChanged.connect(self.selection_changed)
-
-        widget = QWidget()
-        add_remove_layout = QHBoxLayout()
-        widget.setLayout(add_remove_layout)
-        add_remove_layout.addWidget(self.button_add_task)
-        add_remove_layout.addWidget(self.button_remove_task)
-
-        self.vlayout = QVBoxLayout()
-        self.vlayout.addWidget(self.tree)
-        self.vlayout.addWidget(widget)
-
-        widget = QWidget()
-        widget.setLayout(self.vlayout)
-
-        self.setCentralWidget(widget)
+        self.ui.btn_add_task.clicked.connect(self.add_task)
+        self.ui.btn_task_done.clicked.connect(self.remove_task)
 
     def selection_changed(self, sel, dsel):
-        print(self.tree.selectionModel().selectedRows())
+        print(self.ui.tableview_tasks.selectionModel().selectedRows())
         print("Selection changed to: ", sel, dsel)
         # self.button_remove_task.setEnabled
 
@@ -74,7 +57,7 @@ class ToDoList(QMainWindow):
             self.model.add_task(taskname)
 
     def remove_task(self):
-        indexes = self.tree.selectedIndexes()
+        indexes = self.ui.tableview_tasks.selectedIndexes()
         if indexes:
             rows = set(ind.row() for ind in indexes)
             tasknames = ", ".join([self.model._data[row][1] for row in rows])
