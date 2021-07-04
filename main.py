@@ -49,6 +49,8 @@ test_table_days = {
     } for i in range(-2, 3)
 }
 
+test_table_days[sorted(test_table_days.keys())[0]]["note"] = "Here is a testnote with some details about the specific date"
+
 
 @dataclass
 class Row:
@@ -56,10 +58,11 @@ class Row:
     came: time
     went: time
     total: timedelta
+    note: str
 
 
 class TableModel(QAbstractTableModel):
-    HEADERS = ("came", "went", "total")
+    HEADERS = ("came", "went", "total", "note")
 
     def __init__(self):
         super().__init__()
@@ -74,8 +77,8 @@ class TableModel(QAbstractTableModel):
             end_day = self.view_date + timedelta(days=2)
         elif self.time_view_type == TimeViewType.WEEK:
             year, week, day = self.view_date.isocalendar()
-            start_day = date.fromisocalendar(year, week, 0)
-            end_day = date.fromisocalendar(year, week, 5)
+            start_day = date.fromisocalendar(year, week, 1)
+            end_day = date.fromisocalendar(year, week, 7)
         elif self.time_view_type == TimeViewType.MONTH:
             start_day = date(self.view_date.year, self.view_date.month, 1)
             end_day = date(self.view_date.year, self.view_date.month+1, 1) + timedelta(days=-1)
@@ -90,9 +93,9 @@ class TableModel(QAbstractTableModel):
                 came = data["came"]
                 went = data["went"]
                 total = time_to_timedelta(went) - time_to_timedelta(came)
-                self._data[day] = Row(day, came, went, total)
+                self._data[day] = Row(day, came, went, total, data["note"])
             except KeyError:
-                self._data[day] = Row(day, None, None, None)
+                self._data[day] = Row(day, None, None, None, None)
         self.layoutChanged.emit()
 
     def set_view_type(self, time_view_type: TimeViewType):
@@ -104,7 +107,7 @@ class TableModel(QAbstractTableModel):
     def data(self, index: QModelIndex, role: int):
         dt = sorted(self._data.keys())[index.row()]
         row = self._data[dt]
-        data = [row.came, row.went, row.total]
+        data = [row.came, row.went, row.total, row.note]
 
         if role == Qt.DisplayRole:
             d = data[index.column()]
@@ -179,6 +182,10 @@ class TimeReportOverview(QMainWindow):
         self.ui.tableview_days.setModel(self.model)
 
         self.ui.tableview_days.selectionModel().selectionChanged.connect(self.selection_changed)
+        self.ui.actionMonth_view.triggered.connect(lambda : self.model.set_view_type(TimeViewType.MONTH))
+        self.ui.actionWeek_view.triggered.connect(lambda : self.model.set_view_type(TimeViewType.WEEK))
+        self.ui.actionAround_view.triggered.connect(lambda : self.model.set_view_type(TimeViewType.AROUND_DAY))
+        self.ui.actionDay_view.triggered.connect(lambda : self.model.set_view_type(TimeViewType.DAY))
 
     def selection_changed(self, sel: QItemSelection, dsel: QItemSelection):
         self.row_selected.emit(len(sel.indexes()) != 0)

@@ -118,7 +118,8 @@
      <addaction name="actionPrevious"/>
      <addaction name="actionNext"/>
     </widget>
-    <addaction name="actionDay"/>
+    <addaction name="actionDay_view"/>
+    <addaction name="actionAround_view"/>
     <addaction name="actionWeek_view"/>
     <addaction name="actionMonth_view"/>
     <addaction name="separator"/>
@@ -176,7 +177,7 @@
     <string>Exit</string>
    </property>
    <property name="shortcut">
-    <string>Ctrl+W</string>
+    <string>Ctrl+Q</string>
    </property>
   </action>
   <action name="actionAdd_time_spent_2">
@@ -189,9 +190,9 @@
     <string>Edit came/went time</string>
    </property>
   </action>
-  <action name="actionDay">
+  <action name="actionDay_view">
    <property name="text">
-    <string>Day</string>
+    <string>Day view</string>
    </property>
   </action>
   <action name="actionToday_2">
@@ -210,6 +211,11 @@
   <action name="actionNext">
    <property name="text">
     <string>Next</string>
+   </property>
+  </action>
+  <action name="actionAround_view">
+   <property name="text">
+    <string>Around day view</string>
    </property>
   </action>
  </widget>
