@@ -63,6 +63,7 @@ class Row:
 
 class TableModel(QAbstractTableModel):
     HEADERS = ("week", "weekday", "came", "went", "total", "note")
+    data_updated = Signal(date, date, date)
 
     def __init__(self):
         super().__init__()
@@ -81,7 +82,9 @@ class TableModel(QAbstractTableModel):
             end_day = date.fromisocalendar(year, week, 7)
         elif self.time_view_type == TimeViewType.MONTH:
             start_day = date(self.view_date.year, self.view_date.month, 1)
-            end_day = date(self.view_date.year, self.view_date.month+1, 1) + timedelta(days=-1)
+            # Get last day of month: https://stackoverflow.com/a/13565185/4713758
+            next_month = date(self.view_date.year, self.view_date.month, 28) + timedelta(days=4)
+            end_day = next_month + timedelta(days=next_month.day)
         else:
             start_day = end_day = self.view_date
 
@@ -96,6 +99,7 @@ class TableModel(QAbstractTableModel):
                 self._data[day] = Row(day, came, went, total, data["note"])
             except KeyError:
                 self._data[day] = Row(day, None, None, None, None)
+        self.data_updated.emit(self.view_date, start_day, end_day)
         self.layoutChanged.emit()
 
     def set_view_type(self, time_view_type: TimeViewType):
@@ -104,12 +108,12 @@ class TableModel(QAbstractTableModel):
         self.time_view_type = time_view_type
         self.fetch_data()
 
-    def data(self, index: QModelIndex, role: int):
+    def data(self, index: QModelIndex, role: Qt.ItemDataRole):
         dt = sorted(self._data.keys())[index.row()]
         row = self._data[dt]
         data = [dt.isocalendar().week, dt.strftime("%A"), row.came, row.went, row.total, row.note]
 
-        if role == Qt.DisplayRole:
+        if role in (Qt.DisplayRole, Qt.EditRole):
             d = data[index.column()]
             if d is None:
                 return "---"
@@ -122,6 +126,24 @@ class TableModel(QAbstractTableModel):
                 return RowColors.Today.value
             elif day.weekday() >= 5:
                 return RowColors.Weekend.value
+
+    def flags(self, index: QModelIndex) -> Qt.ItemFlags:
+        def_flags = Qt.ItemIsSelectable
+        col_name = self.HEADERS[index.column()]
+        if col_name in ("came", "went", "note"):
+            return Qt.ItemIsEditable | Qt.ItemIsEnabled | def_flags
+        return def_flags
+
+    def setData(self, index: QModelIndex, value: str, role: int = Qt.EditRole) -> bool:
+        try:
+            t = datetime.strptime(value, "%H:%M:%s")
+        except ValueError:
+            try:
+                t = datetime.strptime(value, "%H:%M")
+            except ValueError:
+                return False
+        # TODO: Save the time the was entered back to the database
+        return True
 
     def headerData(self, section: int, orientation: Qt.Orientation, role: int):
         if role == Qt.DisplayRole:
@@ -148,7 +170,9 @@ class TableModel(QAbstractTableModel):
             if orientation == Qt.Vertical:
                 day = sorted(self._data.keys())[section]
                 row = self._data[day]
-                return QIcon.fromTheme("emblem-default") if row.total else QIcon.fromTheme("image-missing") if day.weekday() < 5 and day <= date.today() else None
+                return QIcon.fromTheme("emblem-default") if row.total else \
+                    QIcon.fromTheme("image-missing") if day.weekday() < 5 and day <= date.today() else \
+                    None
 
         elif role == Qt.TextAlignmentRole:
             if orientation == Qt.Vertical:
@@ -202,6 +226,20 @@ class TimeReportOverview(QMainWindow):
         self.ui.actionGotoToday.triggered.connect(self.model.scroll_to_today)
         self.ui.actionGotoPrevious.triggered.connect(lambda: self.model.scroll(forward=False))
         self.ui.actionGotoNext.triggered.connect(lambda: self.model.scroll(forward=True))
+        self.model.data_updated.connect(self.update_current_period)
+        # Force update of label
+        self.model.fetch_data()
+
+    def update_current_period(self, view_date: date, start_date: date, end_date: date):
+        if self.model.time_view_type == TimeViewType.MONTH:
+            period = view_date.strftime("%B, %Y")
+        elif self.model.time_view_type == TimeViewType.WEEK:
+            period = f"Week {view_date.strftime('%V, %Y')}"
+        elif self.model.time_view_type == TimeViewType.DAY:
+            period = str(view_date)
+        else:
+            period = f"{start_date} - {end_date}"
+        self.ui.lbl_current_period.setText(period)
 
     def selection_changed(self, sel: QItemSelection, dsel: QItemSelection):
         self.row_selected.emit(len(sel.indexes()) != 0)
