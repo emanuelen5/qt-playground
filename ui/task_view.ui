@@ -16,21 +16,79 @@
   <widget class="QWidget" name="centralwidget">
    <layout class="QVBoxLayout" name="verticalLayout">
     <item>
-     <widget class="QTableView" name="tableview_tasks"/>
-    </item>
-    <item>
-     <layout class="QHBoxLayout" name="horizontalLayout">
+     <layout class="QHBoxLayout" name="horizontalLayout_2">
       <item>
-       <widget class="QPushButton" name="btn_add_task">
+       <widget class="QToolButton" name="btn_view_previous">
         <property name="text">
-         <string>Add task</string>
+         <string>Previous</string>
+        </property>
+        <property name="icon">
+         <iconset theme="previous"/>
+        </property>
+        <property name="shortcut">
+         <string>P</string>
+        </property>
+        <property name="arrowType">
+         <enum>Qt::LeftArrow</enum>
         </property>
        </widget>
       </item>
       <item>
-       <widget class="QPushButton" name="btn_task_done">
+       <spacer name="horizontalSpacer_2">
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>40</width>
+          <height>20</height>
+         </size>
+        </property>
+       </spacer>
+      </item>
+      <item>
+       <widget class="QToolButton" name="btn_view_next">
         <property name="text">
-         <string>Task done</string>
+         <string>Next</string>
+        </property>
+        <property name="icon">
+         <iconset theme="next"/>
+        </property>
+        <property name="shortcut">
+         <string>N</string>
+        </property>
+        <property name="arrowType">
+         <enum>Qt::RightArrow</enum>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </item>
+    <item>
+     <widget class="QTableView" name="tableview_days"/>
+    </item>
+    <item>
+     <layout class="QHBoxLayout" name="horizontalLayout">
+      <item>
+       <spacer name="horizontalSpacer">
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>40</width>
+          <height>20</height>
+         </size>
+        </property>
+       </spacer>
+      </item>
+      <item>
+       <widget class="QToolButton" name="btn_add_time">
+        <property name="text">
+         <string>Add time</string>
+        </property>
+        <property name="shortcut">
+         <string>Ctrl+N</string>
         </property>
        </widget>
       </item>
@@ -47,9 +105,163 @@
      <height>22</height>
     </rect>
    </property>
+   <widget class="QMenu" name="menuView">
+    <property name="title">
+     <string>View</string>
+    </property>
+    <widget class="QMenu" name="menuGoto">
+     <property name="title">
+      <string>Goto</string>
+     </property>
+     <addaction name="actionToday_2"/>
+     <addaction name="separator"/>
+     <addaction name="actionPrevious"/>
+     <addaction name="actionNext"/>
+    </widget>
+    <addaction name="actionDay"/>
+    <addaction name="actionWeek_view"/>
+    <addaction name="actionMonth_view"/>
+    <addaction name="separator"/>
+    <addaction name="menuGoto"/>
+   </widget>
+   <widget class="QMenu" name="menuFile">
+    <property name="title">
+     <string>File</string>
+    </property>
+    <addaction name="actionOpen"/>
+    <addaction name="actionSave"/>
+    <addaction name="separator"/>
+    <addaction name="actionExit"/>
+   </widget>
+   <widget class="QMenu" name="menuEdit">
+    <property name="title">
+     <string>Edit</string>
+    </property>
+    <addaction name="actionAdd_time_spent_2"/>
+    <addaction name="actionEdit_came_went_time"/>
+   </widget>
+   <addaction name="menuFile"/>
+   <addaction name="menuEdit"/>
+   <addaction name="menuView"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
+  <action name="actionWeek_view">
+   <property name="text">
+    <string>Week view</string>
+   </property>
+  </action>
+  <action name="actionMonth_view">
+   <property name="text">
+    <string>Month view</string>
+   </property>
+  </action>
+  <action name="actionOpen">
+   <property name="checkable">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Open</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+O</string>
+   </property>
+  </action>
+  <action name="actionSave">
+   <property name="text">
+    <string>Save</string>
+   </property>
+  </action>
+  <action name="actionExit">
+   <property name="text">
+    <string>Exit</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+W</string>
+   </property>
+  </action>
+  <action name="actionAdd_time_spent_2">
+   <property name="text">
+    <string>Add time spent</string>
+   </property>
+  </action>
+  <action name="actionEdit_came_went_time">
+   <property name="text">
+    <string>Edit came/went time</string>
+   </property>
+  </action>
+  <action name="actionDay">
+   <property name="text">
+    <string>Day</string>
+   </property>
+  </action>
+  <action name="actionToday_2">
+   <property name="text">
+    <string>Today</string>
+   </property>
+   <property name="shortcut">
+    <string>G, T</string>
+   </property>
+  </action>
+  <action name="actionPrevious">
+   <property name="text">
+    <string>Previous</string>
+   </property>
+  </action>
+  <action name="actionNext">
+   <property name="text">
+    <string>Next</string>
+   </property>
+  </action>
  </widget>
  <resources/>
- <connections/>
+ <connections>
+  <connection>
+   <sender>btn_add_time</sender>
+   <signal>clicked()</signal>
+   <receiver>actionAdd_time_spent_2</receiver>
+   <slot>trigger()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>399</x>
+     <y>309</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>btn_view_next</sender>
+   <signal>clicked()</signal>
+   <receiver>actionNext</receiver>
+   <slot>trigger()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>425</x>
+     <y>43</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>btn_view_previous</sender>
+   <signal>clicked()</signal>
+   <receiver>actionPrevious</receiver>
+   <slot>trigger()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>21</x>
+     <y>43</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
 </ui>
