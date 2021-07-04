@@ -62,7 +62,7 @@ class Row:
 
 
 class TableModel(QAbstractTableModel):
-    HEADERS = ("came", "went", "total", "note")
+    HEADERS = ("week", "weekday", "came", "went", "total", "note")
 
     def __init__(self):
         super().__init__()
@@ -73,8 +73,8 @@ class TableModel(QAbstractTableModel):
 
     def fetch_data(self):
         if self.time_view_type == TimeViewType.AROUND_DAY:
-            start_day = self.view_date - timedelta(days=2)
-            end_day = self.view_date + timedelta(days=2)
+            start_day = self.view_date - timedelta(days=10)
+            end_day = self.view_date + timedelta(days=10)
         elif self.time_view_type == TimeViewType.WEEK:
             year, week, day = self.view_date.isocalendar()
             start_day = date.fromisocalendar(year, week, 1)
@@ -83,7 +83,7 @@ class TableModel(QAbstractTableModel):
             start_day = date(self.view_date.year, self.view_date.month, 1)
             end_day = date(self.view_date.year, self.view_date.month+1, 1) + timedelta(days=-1)
         else:
-            start_day = end_day = date.today()
+            start_day = end_day = self.view_date
 
         wanted_days = (start_day + timedelta(days=i) for i in range((end_day - start_day).days + 1))
         self._data = {}
@@ -107,7 +107,7 @@ class TableModel(QAbstractTableModel):
     def data(self, index: QModelIndex, role: int):
         dt = sorted(self._data.keys())[index.row()]
         row = self._data[dt]
-        data = [row.came, row.went, row.total, row.note]
+        data = [dt.isocalendar().week, dt.strftime("%A"), row.came, row.went, row.total, row.note]
 
         if role == Qt.DisplayRole:
             d = data[index.column()]
@@ -129,7 +129,7 @@ class TableModel(QAbstractTableModel):
                 return self.HEADERS[section].capitalize()
             elif orientation == Qt.Vertical:
                 day = sorted(self._data.keys())[section]
-                return f"{day} ({day.weekday()})"
+                return str(day)
 
         elif role == Qt.FontRole:
             font = QFont()
@@ -148,7 +148,7 @@ class TableModel(QAbstractTableModel):
             if orientation == Qt.Vertical:
                 day = sorted(self._data.keys())[section]
                 row = self._data[day]
-                return QIcon.fromTheme("emblem-default") if row.total else QIcon.fromTheme("image-missing") if day.weekday() < 5 else None
+                return QIcon.fromTheme("emblem-default") if row.total else QIcon.fromTheme("image-missing") if day.weekday() < 5 and day <= date.today() else None
 
         elif role == Qt.TextAlignmentRole:
             if orientation == Qt.Vertical:
@@ -169,6 +169,19 @@ class TableModel(QAbstractTableModel):
             del self._data[row]
             self.layoutChanged.emit()
 
+    def scroll_to_today(self):
+        self.view_date = date.today()
+        self.fetch_data()
+
+    def scroll(self, forward: bool):
+        if self.time_view_type in (TimeViewType.MONTH, TimeViewType.WEEK):
+            days_jump = len(self._data)
+        else:
+            days_jump = 1
+        days_jump = days_jump if forward else -days_jump
+        self.view_date += timedelta(days=days_jump)
+        self.fetch_data()
+
 
 class TimeReportOverview(QMainWindow):
     # Emit a bool to indicate whether a row is selected or not
@@ -182,10 +195,13 @@ class TimeReportOverview(QMainWindow):
         self.ui.tableview_days.setModel(self.model)
 
         self.ui.tableview_days.selectionModel().selectionChanged.connect(self.selection_changed)
-        self.ui.actionMonth_view.triggered.connect(lambda : self.model.set_view_type(TimeViewType.MONTH))
-        self.ui.actionWeek_view.triggered.connect(lambda : self.model.set_view_type(TimeViewType.WEEK))
-        self.ui.actionAround_view.triggered.connect(lambda : self.model.set_view_type(TimeViewType.AROUND_DAY))
-        self.ui.actionDay_view.triggered.connect(lambda : self.model.set_view_type(TimeViewType.DAY))
+        self.ui.actionMonth_view.triggered.connect(lambda: self.model.set_view_type(TimeViewType.MONTH))
+        self.ui.actionWeek_view.triggered.connect(lambda: self.model.set_view_type(TimeViewType.WEEK))
+        self.ui.actionAround_view.triggered.connect(lambda: self.model.set_view_type(TimeViewType.AROUND_DAY))
+        self.ui.actionDay_view.triggered.connect(lambda: self.model.set_view_type(TimeViewType.DAY))
+        self.ui.actionGotoToday.triggered.connect(self.model.scroll_to_today)
+        self.ui.actionGotoPrevious.triggered.connect(lambda: self.model.scroll(forward=False))
+        self.ui.actionGotoNext.triggered.connect(lambda: self.model.scroll(forward=True))
 
     def selection_changed(self, sel: QItemSelection, dsel: QItemSelection):
         self.row_selected.emit(len(sel.indexes()) != 0)
