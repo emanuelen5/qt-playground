@@ -10,6 +10,10 @@ Specification for a time reporting tool:
   Add a task bar icon for easy access when none of the windows are open. Add common tasks to it, like adding time to project and opening the other windows.
 * **Report view** <br>
   A specific view for reporting. Might have to be adapted to specific time reporting tools.
+  
+# Tables
+* projects
+* time spent in projects vs days
 
 # Functions
 ## Basic functions
