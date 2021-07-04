@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>448</width>
-    <height>354</height>
+    <width>484</width>
+    <height>768</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -101,7 +101,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>448</width>
+     <width>484</width>
      <height>22</height>
     </rect>
    </property>
@@ -222,8 +222,8 @@
    <slot>trigger()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>399</x>
-     <y>309</y>
+     <x>425</x>
+     <y>712</y>
     </hint>
     <hint type="destinationlabel">
      <x>-1</x>
@@ -238,7 +238,7 @@
    <slot>trigger()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>425</x>
+     <x>451</x>
      <y>43</y>
     </hint>
     <hint type="destinationlabel">
@@ -260,6 +260,22 @@
     <hint type="destinationlabel">
      <x>-1</x>
      <y>-1</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionExit</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>close()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>223</x>
+     <y>176</y>
     </hint>
    </hints>
   </connection>

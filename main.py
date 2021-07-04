@@ -1,6 +1,6 @@
 from PySide6.QtWidgets import QApplication, QMainWindow
-from PySide6.QtCore import QAbstractTableModel, QModelIndex, Qt, Signal, QItemSelection
-from PySide6.QtGui import QIcon
+from PySide6.QtCore import QAbstractTableModel, QModelIndex, Qt, Signal, QItemSelection, QSize
+from PySide6.QtGui import QIcon, QFont, QColor
 from ui.task_view import Ui_MainWindow
 from dataclasses import dataclass
 from datetime import datetime, time, timedelta, date
@@ -17,6 +17,19 @@ class TimeViewType(Enum):
     AROUND_DAY = auto()
 
 
+class Palette(Enum):
+    Red = QColor(239, 71, 111)
+    Yellow = QColor(255, 209, 102)
+    Green = QColor(6, 214, 160)
+    Blue = QColor(17, 138, 178)
+    Dark = QColor(7, 59, 76)
+
+
+class RowColors(Enum):
+    Today = Palette.Green.value
+    Weekend = QColor(150, 150, 150)
+
+
 def timedelta_to_time(td: timedelta) -> time:
     hours, remainder = divmod(td.seconds, 3600)
     minutes, seconds = divmod(remainder, 60)
@@ -30,8 +43,8 @@ def time_to_timedelta(t: time) -> timedelta:
 # A test database with some came and went times
 test_table_days = {
     date.today() + timedelta(days=i): {
-        "came": timedelta_to_time(timedelta(8, 30) + timedelta(minutes=randint(-60, 60))),
-        "went": timedelta_to_time(timedelta(17, 00) + timedelta(minutes=randint(-60, 60))),
+        "came": timedelta_to_time(timedelta(hours=8, minutes=30) + timedelta(seconds=randint(-60*60, 60*60))),
+        "went": timedelta_to_time(timedelta(hours=17, minutes=00) + timedelta(seconds=randint(-60*60, 60*60))),
         "note": None
     } for i in range(-2, 3)
 }
@@ -46,11 +59,11 @@ class Row:
 
 
 class TableModel(QAbstractTableModel):
-    HEADERS = tuple(field.capitalize() for field in Row.__dataclass_fields__.keys())
+    HEADERS = ("came", "went", "total")
 
     def __init__(self):
         super().__init__()
-        self._data: tuple[Row] = {}
+        self._data: dict[date, Row] = {}
         self.time_view_type = TimeViewType.MONTH
         self.view_date = date.today()
         self.fetch_data()
@@ -91,25 +104,52 @@ class TableModel(QAbstractTableModel):
     def data(self, index: QModelIndex, role: int):
         dt = sorted(self._data.keys())[index.row()]
         row = self._data[dt]
-        data = [row.date, row.came, row.went, row.total]
+        data = [row.came, row.went, row.total]
 
         if role == Qt.DisplayRole:
             d = data[index.column()]
-            if isinstance(d, timedelta):
-                return str(d)
+            if d is None:
+                return "---"
             else:
                 return str(d)
 
-        elif role == Qt.DecorationRole:
-            if self.HEADERS[index.column()].lower() == "total":
-                return QIcon.fromTheme("emblem-default") if row.total else QIcon.fromTheme("image-missing")
+        elif role == Qt.BackgroundRole:
+            day = sorted(self._data.keys())[index.row()]
+            if day == datetime.today().date():
+                return RowColors.Today.value
+            elif day.weekday() >= 5:
+                return RowColors.Weekend.value
 
     def headerData(self, section: int, orientation: Qt.Orientation, role: int):
         if role == Qt.DisplayRole:
             if orientation == Qt.Horizontal:
-                return self.HEADERS[section]
+                return self.HEADERS[section].capitalize()
             elif orientation == Qt.Vertical:
-                return str(sorted(self._data.keys())[section])
+                day = sorted(self._data.keys())[section]
+                return f"{day} ({day.weekday()})"
+
+        elif role == Qt.FontRole:
+            font = QFont()
+            font.setBold(True)
+            return font
+
+        elif role == Qt.BackgroundRole:
+            if orientation == Qt.Vertical:
+                day = sorted(self._data.keys())[section]
+                if day == datetime.today().date():
+                    return RowColors.Today.value
+                elif day.weekday() >= 5:
+                    return RowColors.Weekend.value
+
+        elif role == Qt.DecorationRole:
+            if orientation == Qt.Vertical:
+                day = sorted(self._data.keys())[section]
+                row = self._data[day]
+                return QIcon.fromTheme("emblem-default") if row.total else QIcon.fromTheme("image-missing") if day.weekday() < 5 else None
+
+        elif role == Qt.TextAlignmentRole:
+            if orientation == Qt.Vertical:
+                return Qt.AlignRight
 
     def rowCount(self, index: QModelIndex) -> int:
         return len(self._data)
