@@ -294,6 +294,7 @@ class TimeReportOverview(QMainWindow):
         self.ui.actionGotoToday.triggered.connect(self.model.scroll_to_today)
         self.ui.actionGotoPrevious.triggered.connect(lambda: self.model.scroll(forward=False))
         self.ui.actionGotoNext.triggered.connect(lambda: self.model.scroll(forward=True))
+        self.ui.actionUpdate_came_went_time.triggered.connect(self.update_came_went)
         self.model.data_updated.connect(self.update_current_period)
 
         self.model.session_settings.load(Path(".timereport-session.json"))
@@ -317,6 +318,14 @@ class TimeReportOverview(QMainWindow):
         else:
             period = f"{start_date} - {end_date}"
         self.ui.lbl_current_period.setText(period)
+
+    def update_came_went(self):
+        dt = datetime.now()
+        row = self.model._data[dt.date()]
+        row.came = min(dt.time(), row.came)
+        row.went = max(dt.time(), row.went)
+        test_table_days[dt.date()] = {k: getattr(row, k) for k in row.__dataclass_fields__.keys()}
+        self.model.fetch_data()
 
     def selection_changed(self, sel: QItemSelection, dsel: QItemSelection):
         self.row_selected.emit(len(sel.indexes()) != 0)
