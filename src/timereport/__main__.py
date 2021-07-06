@@ -1,7 +1,7 @@
 from PySide6.QtWidgets import QApplication, QMainWindow
 from PySide6.QtCore import QAbstractTableModel, QModelIndex, Qt, Signal, QItemSelection, QSize
 from PySide6.QtGui import QIcon, QFont, QColor, QCloseEvent, QResizeEvent
-from ui.task_view import Ui_MainWindow
+from .ui.task_view import Ui_MainWindow
 from dataclasses import dataclass
 from datetime import datetime, time, timedelta, date
 from enum import Enum, unique, auto
@@ -73,7 +73,7 @@ class SessionSettings:
 
     def load(self, filepath: Path):
         if not filepath.exists():
-            raise OSError(f"The session file {filepath} does not exist.")
+            raise OSError(f"The session file {filepath.absolute()} does not exist.")
 
         with open(filepath, 'r') as f:
             file_dict = json.loads(f.read())
@@ -313,8 +313,12 @@ class TimeReportOverview(QMainWindow):
         self.row_selected.emit(len(sel.indexes()) != 0)
 
 
-if __name__ == '__main__':
+def main():
     app = QApplication([])
     w = TimeReportOverview()
     w.show()
     sys.exit(app.exec())
+
+
+if __name__ == '__main__':
+    main()
