@@ -1,6 +1,6 @@
 from PySide6.QtWidgets import QApplication, QMainWindow
 from PySide6.QtCore import QAbstractTableModel, QModelIndex, Qt, Signal, QItemSelection, QSize
-from PySide6.QtGui import QIcon, QFont, QColor, QCloseEvent
+from PySide6.QtGui import QIcon, QFont, QColor, QCloseEvent, QResizeEvent
 from ui.task_view import Ui_MainWindow
 from dataclasses import dataclass
 from datetime import datetime, time, timedelta, date
@@ -62,11 +62,13 @@ class SessionSettings:
     # Default value
     time_view_type: TimeViewType = TimeViewType.MONTH
     view_date: date = date.today()
+    window_size: QSize = QSize(300, 600)
 
     # Serialize function, Deserialize function
     serdes = {
         "time_view_type": (lambda v: v.name, lambda s: TimeViewType[s]),
-        "view_date": (lambda v: v.strftime("%Y-%m-%d"), lambda s: datetime.strptime(s, "%Y-%m-%d").date())
+        "view_date": (lambda v: v.strftime("%Y-%m-%d"), lambda s: datetime.strptime(s, "%Y-%m-%d").date()),
+        "window_size": (lambda v: dict(w=v.width(), h=v.height()), lambda s: QSize(s["w"], s["h"])),
     }
 
     def load(self, filepath: Path):
@@ -286,11 +288,15 @@ class TimeReportOverview(QMainWindow):
         self.model.data_updated.connect(self.update_current_period)
 
         self.model.session_settings.load(Path(".timereport-session.json"))
+        self.resize(self.model.session_settings.window_size)
         self.model.fetch_data()
 
     def closeEvent(self, event: QCloseEvent) -> None:
         logger.debug("Saving session settings")
         self.model.session_settings.save(Path(".timereport-session.json"))
+
+    def resizeEvent(self, event: QResizeEvent) -> None:
+        self.model.session_settings.window_size = event.size()
 
     def update_current_period(self, view_date: date, start_date: date, end_date: date):
         if self.model.session_settings.time_view_type == TimeViewType.MONTH:
