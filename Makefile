@@ -1,5 +1,7 @@
-UI_FILES:=$(find . -name *.ui)
+UI_FILES:=$(shell find src -name *.ui)
 PY_FILES:=$(UI_FILES:%.ui=%.py)
+
+$(info UI-files: ${UI_FILES})
 
 all: ui
 ui: ${PY_FILES}
@@ -7,4 +9,7 @@ ui: ${PY_FILES}
 %.py: %.ui
 	pyside6-uic $^ -o $@
 
-.PHONY: all ui
+clean:
+	rm -v ${PY_FILES}
+
+.PHONY: all ui clean
