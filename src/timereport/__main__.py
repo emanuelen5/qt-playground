@@ -9,6 +9,7 @@ from pathlib import Path
 import json
 from random import randint
 import sys
+import threading
 from logging import getLogger
 
 logger = getLogger(__name__)
@@ -73,7 +74,8 @@ class SessionSettings:
 
     def load(self, filepath: Path):
         if not filepath.exists():
-            raise OSError(f"The session file {filepath.absolute()} does not exist.")
+            logger.info(f"The session file {filepath.absolute()} does not exist. No changes.")
+            return
 
         with open(filepath, 'r') as f:
             file_dict = json.loads(f.read())
@@ -128,7 +130,10 @@ class TableModel(QAbstractTableModel):
 
     def __init__(self):
         super().__init__()
+        self._data_lock = threading.Lock()
         self._data: dict[date, Row] = {}
+        self.columns = []
+        self.headers = []
         self.session_settings = SessionSettings()
 
     def fetch_data(self):
@@ -148,16 +153,18 @@ class TableModel(QAbstractTableModel):
             start_day = end_day = self.session_settings.view_date
 
         wanted_days = (start_day + timedelta(days=i) for i in range((end_day - start_day).days + 1))
-        self._data = {}
+        new_data = {}
         for day in wanted_days:
             try:
                 data = test_table_days[day]
                 came = data["came"]
                 went = data["went"]
                 total = time_to_timedelta(went) - time_to_timedelta(came)
-                self._data[day] = Row(day, came, went, total, data["note"])
+                new_data[day] = Row(day, came, went, total, data["note"])
             except KeyError:
-                self._data[day] = Row(day, None, None, None, None)
+                new_data[day] = Row(day, None, None, None, None)
+        with self._data_lock:
+            self._data = new_data
         self.data_updated.emit(self.session_settings.view_date, start_day, end_day)
         self.layoutChanged.emit()
 
@@ -168,9 +175,10 @@ class TableModel(QAbstractTableModel):
         self.fetch_data()
 
     def data(self, index: QModelIndex, role: Qt.ItemDataRole):
-        dt = sorted(self._data.keys())[index.row()]
-        row = self._data[dt]
-        data = [dt.isocalendar().week, dt.strftime("%A"), row.came, row.went, row.total, row.note]
+        with self._data_lock:
+            day = sorted(self._data.keys())[index.row()]
+            row = self._data[day]
+        data = [day.isocalendar().week, day.strftime("%A"), row.came, row.went, row.total, row.note]
 
         if role in (Qt.DisplayRole, Qt.EditRole):
             d = data[index.column()]
@@ -180,7 +188,6 @@ class TableModel(QAbstractTableModel):
                 return str(d)
 
         elif role == Qt.BackgroundRole:
-            day = sorted(self._data.keys())[index.row()]
             if day == datetime.today().date():
                 return RowColors.Today.value
             elif day.weekday() >= 5:
@@ -205,11 +212,15 @@ class TableModel(QAbstractTableModel):
         return True
 
     def headerData(self, section: int, orientation: Qt.Orientation, role: int):
+        if orientation == Qt.Vertical:
+            with self._data_lock:
+                day = sorted(self._data.keys())[section]
+                row = self._data[day]
+
         if role == Qt.DisplayRole:
             if orientation == Qt.Horizontal:
                 return self.HEADERS[section].capitalize()
             elif orientation == Qt.Vertical:
-                day = sorted(self._data.keys())[section]
                 return str(day)
 
         elif role == Qt.FontRole:
@@ -219,7 +230,6 @@ class TableModel(QAbstractTableModel):
 
         elif role == Qt.BackgroundRole:
             if orientation == Qt.Vertical:
-                day = sorted(self._data.keys())[section]
                 if day == datetime.today().date():
                     return RowColors.Today.value
                 elif day.weekday() >= 5:
@@ -227,8 +237,6 @@ class TableModel(QAbstractTableModel):
 
         elif role == Qt.DecorationRole:
             if orientation == Qt.Vertical:
-                day = sorted(self._data.keys())[section]
-                row = self._data[day]
                 return QIcon.fromTheme("emblem-default") if row.total else \
                     QIcon.fromTheme("image-missing") if day.weekday() < 5 and day <= date.today() else \
                     None
@@ -248,9 +256,10 @@ class TableModel(QAbstractTableModel):
         self.layoutChanged.emit()
 
     def remove_task(self, row: int):
-        if 0 <= row < len(self._data):
-            del self._data[row]
-            self.layoutChanged.emit()
+        with self._data_lock:
+            if 0 <= row < len(self._data):
+                del self._data[row]
+                self.layoutChanged.emit()
 
     def scroll_to_today(self):
         self.session_settings.view_date = date.today()
