@@ -1,12 +1,17 @@
 from PySide6.QtWidgets import QApplication, QMainWindow
 from PySide6.QtCore import QAbstractTableModel, QModelIndex, Qt, Signal, QItemSelection, QSize
-from PySide6.QtGui import QIcon, QFont, QColor
+from PySide6.QtGui import QIcon, QFont, QColor, QCloseEvent
 from ui.task_view import Ui_MainWindow
 from dataclasses import dataclass
 from datetime import datetime, time, timedelta, date
 from enum import Enum, unique, auto
+from pathlib import Path
+import json
 from random import randint
 import sys
+from logging import getLogger
+
+logger = getLogger(__name__)
 
 
 @unique
@@ -53,6 +58,60 @@ test_table_days[sorted(test_table_days.keys())[0]]["note"] = "Here is a testnote
 
 
 @dataclass
+class SessionSettings:
+    # Default value
+    time_view_type: TimeViewType = TimeViewType.MONTH
+    view_date: date = date.today()
+
+    # Serialize function, Deserialize function
+    serdes = {
+        "time_view_type": (lambda v: v.name, lambda s: TimeViewType[s]),
+        "view_date": (lambda v: v.strftime("%Y-%m-%d"), lambda s: datetime.strptime(s, "%Y-%m-%d").date())
+    }
+
+    def load(self, filepath: Path):
+        if not filepath.exists():
+            raise OSError(f"The session file {filepath} does not exist.")
+
+        with open(filepath, 'r') as f:
+            file_dict = json.loads(f.read())
+        for prop in self.__dataclass_fields__.keys():
+            if prop not in self.serdes:
+                logger.warning(f"Missing deserializer for property {prop}.")
+                continue
+
+            _, deserialize = self.serdes[prop]
+            try:
+                value = deserialize(file_dict[prop])
+                setattr(self, prop, value)
+            except KeyError:
+                logger.warning(f"Key {prop} missing in session file. Using default instead.")
+            except BaseException as e:
+                logger.exception(f"Error while serializing {prop}.")
+                continue
+
+    def save(self, filepath: Path):
+        kwargs = dict()
+        for prop in self.__dataclass_fields__.keys():
+            if prop not in self.serdes:
+                logger.warning(f"Missing serializer for property {prop}.")
+                continue
+            value = getattr(self, prop)
+            serialize, _ = self.serdes[prop]
+            try:
+                value = serialize(getattr(self, prop))
+            except KeyError:
+                pass
+            except BaseException as e:
+                logger.warning(f"Error while serializing {prop}. Got the following error: {e}")
+                continue
+            kwargs[prop] = value
+
+        with open(filepath, 'w') as f:
+            f.write(json.dumps(kwargs, sort_keys=True, indent=4))
+
+
+@dataclass
 class Row:
     date: date
     came: time
@@ -68,25 +127,23 @@ class TableModel(QAbstractTableModel):
     def __init__(self):
         super().__init__()
         self._data: dict[date, Row] = {}
-        self.time_view_type = TimeViewType.MONTH
-        self.view_date = date.today()
-        self.fetch_data()
+        self.session_settings = SessionSettings()
 
     def fetch_data(self):
-        if self.time_view_type == TimeViewType.AROUND_DAY:
-            start_day = self.view_date - timedelta(days=10)
-            end_day = self.view_date + timedelta(days=10)
-        elif self.time_view_type == TimeViewType.WEEK:
-            year, week, day = self.view_date.isocalendar()
+        if self.session_settings.time_view_type == TimeViewType.AROUND_DAY:
+            start_day = self.session_settings.view_date - timedelta(days=10)
+            end_day = self.session_settings.view_date + timedelta(days=10)
+        elif self.session_settings.time_view_type == TimeViewType.WEEK:
+            year, week, day = self.session_settings.view_date.isocalendar()
             start_day = date.fromisocalendar(year, week, 1)
             end_day = date.fromisocalendar(year, week, 7)
-        elif self.time_view_type == TimeViewType.MONTH:
-            start_day = date(self.view_date.year, self.view_date.month, 1)
+        elif self.session_settings.time_view_type == TimeViewType.MONTH:
+            start_day = date(self.session_settings.view_date.year, self.session_settings.view_date.month, 1)
             # Get last day of month: https://stackoverflow.com/a/13565185/4713758
-            next_month = date(self.view_date.year, self.view_date.month, 28) + timedelta(days=4)
+            next_month = date(self.session_settings.view_date.year, self.session_settings.view_date.month, 28) + timedelta(days=4)
             end_day = next_month + timedelta(days=next_month.day)
         else:
-            start_day = end_day = self.view_date
+            start_day = end_day = self.session_settings.view_date
 
         wanted_days = (start_day + timedelta(days=i) for i in range((end_day - start_day).days + 1))
         self._data = {}
@@ -99,13 +156,13 @@ class TableModel(QAbstractTableModel):
                 self._data[day] = Row(day, came, went, total, data["note"])
             except KeyError:
                 self._data[day] = Row(day, None, None, None, None)
-        self.data_updated.emit(self.view_date, start_day, end_day)
+        self.data_updated.emit(self.session_settings.view_date, start_day, end_day)
         self.layoutChanged.emit()
 
     def set_view_type(self, time_view_type: TimeViewType):
-        if time_view_type == self.time_view_type:
+        if time_view_type == self.session_settings.time_view_type:
             return
-        self.time_view_type = time_view_type
+        self.session_settings.time_view_type = time_view_type
         self.fetch_data()
 
     def data(self, index: QModelIndex, role: Qt.ItemDataRole):
@@ -194,16 +251,16 @@ class TableModel(QAbstractTableModel):
             self.layoutChanged.emit()
 
     def scroll_to_today(self):
-        self.view_date = date.today()
+        self.session_settings.view_date = date.today()
         self.fetch_data()
 
     def scroll(self, forward: bool):
-        if self.time_view_type in (TimeViewType.MONTH, TimeViewType.WEEK):
+        if self.session_settings.time_view_type in (TimeViewType.MONTH, TimeViewType.WEEK):
             days_jump = len(self._data)
         else:
             days_jump = 1
         days_jump = days_jump if forward else -days_jump
-        self.view_date += timedelta(days=days_jump)
+        self.session_settings.view_date += timedelta(days=days_jump)
         self.fetch_data()
 
 
@@ -227,15 +284,20 @@ class TimeReportOverview(QMainWindow):
         self.ui.actionGotoPrevious.triggered.connect(lambda: self.model.scroll(forward=False))
         self.ui.actionGotoNext.triggered.connect(lambda: self.model.scroll(forward=True))
         self.model.data_updated.connect(self.update_current_period)
-        # Force update of label
+
+        self.model.session_settings.load(Path(".timereport-session.json"))
         self.model.fetch_data()
 
+    def closeEvent(self, event: QCloseEvent) -> None:
+        logger.debug("Saving session settings")
+        self.model.session_settings.save(Path(".timereport-session.json"))
+
     def update_current_period(self, view_date: date, start_date: date, end_date: date):
-        if self.model.time_view_type == TimeViewType.MONTH:
+        if self.model.session_settings.time_view_type == TimeViewType.MONTH:
             period = view_date.strftime("%B, %Y")
-        elif self.model.time_view_type == TimeViewType.WEEK:
+        elif self.model.session_settings.time_view_type == TimeViewType.WEEK:
             period = f"Week {view_date.strftime('%V, %Y')}"
-        elif self.model.time_view_type == TimeViewType.DAY:
+        elif self.model.session_settings.time_view_type == TimeViewType.DAY:
             period = str(view_date)
         else:
             period = f"{start_date} - {end_date}"
