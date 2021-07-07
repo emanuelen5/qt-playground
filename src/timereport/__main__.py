@@ -148,7 +148,7 @@ class TableModel(QAbstractTableModel):
             start_day = date(self.session_settings.view_date.year, self.session_settings.view_date.month, 1)
             # Get last day of month: https://stackoverflow.com/a/13565185/4713758
             next_month = date(self.session_settings.view_date.year, self.session_settings.view_date.month, 28) + timedelta(days=4)
-            end_day = next_month + timedelta(days=next_month.day)
+            end_day = next_month - timedelta(days=next_month.day)
         else:
             start_day = end_day = self.session_settings.view_date
 
