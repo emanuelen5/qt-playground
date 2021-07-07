@@ -1,8 +1,8 @@
-from PySide6.QtWidgets import QApplication, QMainWindow
+from PySide6.QtWidgets import QApplication, QMainWindow, QMessageBox, QFileDialog
 from PySide6.QtCore import QAbstractTableModel, QModelIndex, Qt, Signal, QItemSelection, QSize
 from PySide6.QtGui import QIcon, QFont, QColor, QCloseEvent, QResizeEvent
 from .ui.task_view import Ui_MainWindow
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, time, timedelta, date
 from enum import Enum, unique, auto
 from pathlib import Path
@@ -11,6 +11,7 @@ from random import randint
 import sys
 import threading
 from logging import getLogger
+from typing import Union
 
 logger = getLogger(__name__)
 
@@ -64,12 +65,14 @@ class SessionSettings:
     time_view_type: TimeViewType = TimeViewType.MONTH
     view_date: date = date.today()
     window_size: QSize = QSize(300, 600)
+    recent_files: list[Path] = field(default_factory=lambda: [])
 
     # Serialize function, Deserialize function
     serdes = {
         "time_view_type": (lambda v: v.name, lambda s: TimeViewType[s]),
         "view_date": (lambda v: v.strftime("%Y-%m-%d"), lambda s: datetime.strptime(s, "%Y-%m-%d").date()),
         "window_size": (lambda v: dict(w=v.width(), h=v.height()), lambda s: QSize(s["w"], s["h"])),
+        "recent_files": (lambda v: [str(f.absolute()) for f in v], lambda s: [Path(f) for f in s])
     }
 
     def load(self, filepath: Path):
@@ -89,7 +92,7 @@ class SessionSettings:
                 value = deserialize(file_dict[prop])
                 setattr(self, prop, value)
             except KeyError:
-                logger.warning(f"Key {prop} missing in session file. Using default instead.")
+                logger.warning(f"Key {prop} missing in session file. Skipping.")
             except BaseException as e:
                 logger.exception(f"Error while serializing {prop}.")
                 continue
@@ -105,7 +108,7 @@ class SessionSettings:
             try:
                 value = serialize(getattr(self, prop))
             except KeyError:
-                pass
+                logger.error(f"Key {prop} missing in session setting. Skipping.")
             except BaseException as e:
                 logger.warning(f"Error while serializing {prop}. Got the following error: {e}")
                 continue
@@ -284,6 +287,8 @@ class TimeReportOverview(QMainWindow):
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
         self.model = TableModel()
+        self.dirty: bool = False
+        self.filepath: Path = None
         self.ui.tableview_days.setModel(self.model)
 
         self.ui.tableview_days.selectionModel().selectionChanged.connect(self.selection_changed)
@@ -295,6 +300,8 @@ class TimeReportOverview(QMainWindow):
         self.ui.actionGotoPrevious.triggered.connect(lambda: self.model.scroll(forward=False))
         self.ui.actionGotoNext.triggered.connect(lambda: self.model.scroll(forward=True))
         self.ui.actionUpdate_came_went_time.triggered.connect(self.update_came_went)
+        self.ui.actionSave.triggered.connect(lambda: self.save_db_to_file(self.filepath))
+        self.ui.actionSave_As.triggered.connect(lambda: self.save_db_to_file(None))
         self.model.data_updated.connect(self.update_current_period)
 
         self.model.session_settings.load(Path(".timereport-session.json"))
@@ -302,11 +309,54 @@ class TimeReportOverview(QMainWindow):
         self.model.fetch_data()
 
     def closeEvent(self, event: QCloseEvent) -> None:
+        if self.dirty:
+            resp = QMessageBox.warning(
+                self,
+                "You have unsaved changes",
+                "You have unsaved changes. Do you want to save them before closing?",
+                QMessageBox.Yes | QMessageBox.No | QMessageBox.Cancel,
+
+            )
+            if resp == QMessageBox.Yes:
+                self.save_db_to_file(self.filepath)
+            elif resp == QMessageBox.Cancel:
+                self.ui.statusbar.showMessage("Canceled. Database still has unsaved changes.")
+                event.ignore()
         logger.debug("Saving session settings")
         self.model.session_settings.save(Path(".timereport-session.json"))
 
     def resizeEvent(self, event: QResizeEvent) -> None:
         self.model.session_settings.window_size = event.size()
+
+    def get_save_location(self) -> Union[Path, None]:
+        # Cannot use QFileDialog.saveFileDialog with a default saving suffix, so using this way
+        dialog = QFileDialog(self, "Select where to save the trep database", "trep.db.json", "trep DB (*.json)")
+        dialog.setModal(True)
+        dialog.setDefaultSuffix("json")
+        dialog.setFileMode(QFileDialog.AnyFile)
+        dialog.setAcceptMode(QFileDialog.AcceptSave)
+        # Preselecting file does not seem to work when running from Pycharm. Not using native dialogs fixes it,
+        # but looks worse, i.e.:
+        # dialog.setOption(QFileDialog.DontUseNativeDialog)
+        dialog.selectFile("trep.db.json")
+        if dialog.exec():
+            return Path(dialog.selectedFiles()[0])
+
+    def save_db_to_file(self, filepath: Path = None):
+        if filepath is None:
+            filepath = self.get_save_location()
+
+            if filepath is None:
+                # User canceled "save as dialog" before
+                self.ui.statusbar.showMessage("Canceled", 1000)
+                return
+            self.filepath = filepath
+
+        logger.info(f"Saving as {self.filepath}")
+        data = json.dumps(test_table_days)
+        with open(self.filepath, 'w') as f:
+            f.write(data)
+        self.ui.statusbar.showMessage("Saved database", 2000)
 
     def update_current_period(self, view_date: date, start_date: date, end_date: date):
         if self.model.session_settings.time_view_type == TimeViewType.MONTH:
