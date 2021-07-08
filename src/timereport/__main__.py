@@ -7,7 +7,7 @@ import json
 import sys
 from logging import getLogger
 from typing import Union
-from .model import TableModel
+from .model import TableModel, TimeDelegate
 from .session import TimeViewType
 from .testdata import test_table_days
 from .ui.task_view import Ui_MainWindow
@@ -24,9 +24,12 @@ class TimeReportOverview(QMainWindow):
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
         self.model = TableModel()
+        self.delegate = TimeDelegate()
         self.dirty: bool = False
         self.filepath: Path = None
         self.ui.tableview_days.setModel(self.model)
+        self.ui.tableview_days.setItemDelegateForColumn(self.model.HEADERS.index("came"), self.delegate)
+        self.ui.tableview_days.setItemDelegateForColumn(self.model.HEADERS.index("went"), self.delegate)
 
         self.ui.tableview_days.selectionModel().selectionChanged.connect(self.selection_changed)
         self.ui.actionMonth_view.triggered.connect(lambda: self.model.set_view_type(TimeViewType.MONTH))

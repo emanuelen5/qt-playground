@@ -1,8 +1,10 @@
 from PySide6.QtCore import QAbstractTableModel, QModelIndex, Qt, Signal
 from PySide6.QtGui import QIcon, QFont, QColor
+from PySide6 import QtCore, QtWidgets
 from dataclasses import dataclass
 from datetime import datetime, time, timedelta, date
 from enum import Enum
+from typing import Union
 import threading
 from logging import getLogger
 from .session import SessionSettings, TimeViewType
@@ -32,6 +34,25 @@ class Row:
     went: time
     total: timedelta
     note: str
+    
+
+class TimeDelegate(QtWidgets.QStyledItemDelegate):
+    def createEditor(self, parent: QtWidgets.QWidget, option: QtWidgets.QStyleOptionViewItem, index: QModelIndex):
+        editor = QtWidgets.QTimeEdit(parent)
+        editor.setDisplayFormat("hh:mm")
+        return editor
+
+    def setEditorData(self, editor: QtWidgets.QTimeEdit, index: QModelIndex):
+        value = index.model().data(index, QtCore.Qt.EditRole)
+        editor.setTime(value)
+
+    def setModelData(self, editor: QtWidgets.QTimeEdit, model: QAbstractTableModel, index: QtWidgets.QTimeEdit):
+        editor.interpretText()
+        t = editor.time()
+        model.setData(index, time(t.hour(), t.minute()), QtCore.Qt.EditRole)
+
+    def updateEditorGeometry(self, editor: QtWidgets.QTimeEdit, option: QtWidgets.QStyleOptionViewItem, index: QtWidgets.QTimeEdit):
+        editor.setGeometry(option.rect)
 
 
 class TableModel(QAbstractTableModel):
@@ -100,7 +121,7 @@ class TableModel(QAbstractTableModel):
                 elif role == Qt.DisplayRole:
                     return d.strftime("%H:%M:%S")
                 elif role == Qt.EditRole:
-                    return d.strftime("%H:%M")
+                    return d
             elif col_name in ("total", ):
                 if d is None:
                     return ""
@@ -123,18 +144,13 @@ class TableModel(QAbstractTableModel):
             return Qt.ItemIsEditable | Qt.ItemIsEnabled | def_flags
         return def_flags
 
-    def setData(self, index: QModelIndex, value: str, role: int = Qt.EditRole) -> bool:
+    def setData(self, index: QModelIndex, value: Union[str, time], role: int = Qt.EditRole) -> bool:
         day = sorted(self._data.keys())[index.row()]
         col_name = self.HEADERS[index.column()]
         if col_name in ("came", "went"):
-            for fmt in ("%H:%M:%s.%f", "%H:%M:%s", "%H:%M", "%H"):
-                try:
-                    test_table_days[day][col_name] = datetime.strptime(value, fmt)
-                    self.dataChanged.emit(index, index, [])
-                    return True
-                except ValueError:
-                    pass
-            return False
+            test_table_days[day][col_name] = value
+            self.dataChanged.emit(index, index, [])
+            return True
         elif col_name in ("note", ):
             test_table_days[day]["note"] = value
             self.dataChanged.emit(index, index, [])
