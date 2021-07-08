@@ -138,6 +138,7 @@ class TableModel(QAbstractTableModel):
         self.columns = []
         self.headers = []
         self.session_settings = SessionSettings()
+        self.dataChanged.connect(lambda *args: self.fetch_data())
 
     def fetch_data(self):
         if self.session_settings.time_view_type == TimeViewType.AROUND_DAY:
@@ -185,10 +186,22 @@ class TableModel(QAbstractTableModel):
 
         if role in (Qt.DisplayRole, Qt.EditRole):
             d = data[index.column()]
-            if d is None:
-                return "---"
-            else:
-                return str(d)
+            col_name = self.HEADERS[index.column()]
+            if col_name in ("came", "went"):
+                if d is None:
+                    return "---"
+                elif role == Qt.DisplayRole:
+                    return d.strftime("%H:%M:%S")
+                elif role == Qt.EditRole:
+                    return d.strftime("%H:%M")
+            elif col_name in ("total", ):
+                if d is None:
+                    return ""
+                else:
+                    return str(d)
+            elif col_name in ("note", ):
+                return "" if d is None else d
+            return str(d)
 
         elif role == Qt.BackgroundRole:
             if day == datetime.today().date():
@@ -204,15 +217,23 @@ class TableModel(QAbstractTableModel):
         return def_flags
 
     def setData(self, index: QModelIndex, value: str, role: int = Qt.EditRole) -> bool:
-        try:
-            t = datetime.strptime(value, "%H:%M:%s")
-        except ValueError:
-            try:
-                t = datetime.strptime(value, "%H:%M")
-            except ValueError:
-                return False
-        # TODO: Save the time the was entered back to the database
-        return True
+        day = sorted(self._data.keys())[index.row()]
+        col_name = self.HEADERS[index.column()]
+        if col_name in ("came", "went"):
+            for fmt in ("%H:%M:%s.%f", "%H:%M:%s", "%H:%M", "%H"):
+                try:
+                    test_table_days[day][col_name] = datetime.strptime(value, fmt)
+                    self.dataChanged.emit(index, index, [])
+                    return True
+                except ValueError:
+                    pass
+            return False
+        elif col_name in ("note", ):
+            test_table_days[day]["note"] = value
+            self.dataChanged.emit(index, index, [])
+            return True
+        logger.error(f"Unhandled column {col_name}")
+        return False
 
     def headerData(self, section: int, orientation: Qt.Orientation, role: int):
         if orientation == Qt.Vertical:
