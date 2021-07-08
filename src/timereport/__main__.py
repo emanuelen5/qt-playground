@@ -52,7 +52,7 @@ test_table_days = {
     date.today() + timedelta(days=i): {
         "came": timedelta_to_time(timedelta(hours=8, minutes=30) + timedelta(seconds=randint(-60*60, 60*60))),
         "went": timedelta_to_time(timedelta(hours=17, minutes=00) + timedelta(seconds=randint(-60*60, 60*60))),
-        "note": None
+        "note": ""
     } for i in range(-2, 3)
 }
 
@@ -200,7 +200,7 @@ class TableModel(QAbstractTableModel):
                 else:
                     return str(d)
             elif col_name in ("note", ):
-                return "" if d is None else d
+                return d
             return str(d)
 
         elif role == Qt.BackgroundRole:
