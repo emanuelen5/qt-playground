@@ -147,6 +147,8 @@ class TableModel(QAbstractTableModel):
     def setData(self, index: QModelIndex, value: Union[str, time], role: int = Qt.EditRole) -> bool:
         day = sorted(self._data.keys())[index.row()]
         col_name = self.HEADERS[index.column()]
+        if day not in testdata.test_table_days:
+            testdata.test_table_days[day] = dict(came=datetime.now().time(), went=datetime.now().time(), note="")
         if col_name in ("came", "went"):
             testdata.test_table_days[day][col_name] = value
             self.dataChanged.emit(index, index, [])
