@@ -9,7 +9,7 @@ from logging import getLogger
 from typing import Union
 from .model import TableModel, TimeDelegate
 from .session import TimeViewType
-from .testdata import test_table_days
+from .testdata import test_table_days, load_from_json, save_as_json
 from .ui.task_view import Ui_MainWindow
 
 logger = getLogger(__name__)
@@ -42,6 +42,7 @@ class TimeReportOverview(QMainWindow):
         self.ui.actionUpdate_came_went_time.triggered.connect(self.update_came_went)
         self.ui.actionSave.triggered.connect(lambda: self.save_db_to_file(self.filepath))
         self.ui.actionSave_As.triggered.connect(lambda: self.save_db_to_file(None))
+        self.ui.actionOpen.triggered.connect(lambda: self.open_db_from_file())
         self.model.data_updated.connect(self.update_current_period)
 
         self.model.session_settings.load(Path(".timereport-session.json"))
@@ -93,10 +94,18 @@ class TimeReportOverview(QMainWindow):
             self.filepath = filepath
 
         logger.info(f"Saving as {self.filepath}")
-        data = json.dumps(test_table_days)
-        with open(self.filepath, 'w') as f:
-            f.write(data)
+        save_as_json(test_table_days, filepath)
         self.ui.statusbar.showMessage("Saved database", 2000)
+
+    def open_db_from_file(self):
+        filepath, ending = QFileDialog.getOpenFileName(self, "Select trep db", filter="trep DB (*.json)")
+        if filepath == "":
+            self.ui.statusbar.showMessage("Canceled", 2000)
+            return
+
+        global test_table_days
+        test_table_days = load_from_json(Path(filepath))
+        self.ui.statusbar.showMessage(f"Opened database {filepath}", 2000)
 
     def update_current_period(self, view_date: date, start_date: date, end_date: date):
         if self.model.session_settings.time_view_type == TimeViewType.MONTH:

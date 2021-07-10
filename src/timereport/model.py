@@ -198,10 +198,6 @@ class TableModel(QAbstractTableModel):
     def columnCount(self, index: QModelIndex) -> int:
         return len(self.HEADERS)
 
-    def add_task(self, taskname: str):
-        self._data.append((False, taskname))
-        self.layoutChanged.emit()
-
     def remove_task(self, row: int):
         with self._data_lock:
             if 0 <= row < len(self._data):
