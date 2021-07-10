@@ -8,7 +8,7 @@ from typing import Union
 import threading
 from logging import getLogger
 from .session import SessionSettings, TimeViewType
-from .testdata import test_table_days
+from . import testdata
 from .util import time_to_timedelta
 
 logger = getLogger(__name__)
@@ -88,7 +88,7 @@ class TableModel(QAbstractTableModel):
         new_data = {}
         for day in wanted_days:
             try:
-                data = test_table_days[day]
+                data = testdata.test_table_days[day]
                 came = data["came"]
                 went = data["went"]
                 total = time_to_timedelta(went) - time_to_timedelta(came)
@@ -148,11 +148,11 @@ class TableModel(QAbstractTableModel):
         day = sorted(self._data.keys())[index.row()]
         col_name = self.HEADERS[index.column()]
         if col_name in ("came", "went"):
-            test_table_days[day][col_name] = value
+            testdata.test_table_days[day][col_name] = value
             self.dataChanged.emit(index, index, [])
             return True
         elif col_name in ("note", ):
-            test_table_days[day]["note"] = value
+            testdata.test_table_days[day]["note"] = value
             self.dataChanged.emit(index, index, [])
             return True
         logger.error(f"Unhandled column {col_name}")

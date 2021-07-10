@@ -3,13 +3,13 @@ from PySide6.QtCore import Signal, QItemSelection
 from PySide6.QtGui import QCloseEvent, QResizeEvent
 from datetime import datetime, date
 from pathlib import Path
-import json
 import sys
 from logging import getLogger
 from typing import Union
 from .model import TableModel, TimeDelegate
 from .session import TimeViewType
-from .testdata import test_table_days, load_from_json, save_as_json
+from . import testdata
+from .testdata import load_from_json, save_as_json
 from .ui.task_view import Ui_MainWindow
 
 logger = getLogger(__name__)
@@ -94,7 +94,7 @@ class TimeReportOverview(QMainWindow):
             self.filepath = filepath
 
         logger.info(f"Saving as {self.filepath}")
-        save_as_json(test_table_days, filepath)
+        save_as_json(testdata.test_table_days, filepath)
         self.ui.statusbar.showMessage("Saved database", 2000)
 
     def open_db_from_file(self):
@@ -103,9 +103,9 @@ class TimeReportOverview(QMainWindow):
             self.ui.statusbar.showMessage("Canceled", 2000)
             return
 
-        global test_table_days
-        test_table_days = load_from_json(Path(filepath))
-        self.ui.statusbar.showMessage(f"Opened database {filepath}", 2000)
+        testdata.test_table_days = load_from_json(Path(filepath))
+        self.model.fetch_data()
+        self.ui.statusbar.showMessage(f"Opened database {filepath}", 4000)
 
     def update_current_period(self, view_date: date, start_date: date, end_date: date):
         if self.model.session_settings.time_view_type == TimeViewType.MONTH:
@@ -123,7 +123,7 @@ class TimeReportOverview(QMainWindow):
         row = self.model._data[dt.date()]
         row.came = min(dt.time(), row.came)
         row.went = max(dt.time(), row.went)
-        test_table_days[dt.date()] = {k: getattr(row, k) for k in row.__dataclass_fields__.keys()}
+        testdata.test_table_days[dt.date()] = {k: getattr(row, k) for k in row.__dataclass_fields__.keys()}
         self.model.fetch_data()
 
     def selection_changed(self, sel: QItemSelection, dsel: QItemSelection):
