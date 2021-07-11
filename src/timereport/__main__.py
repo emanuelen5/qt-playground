@@ -28,6 +28,7 @@ class TimeReportOverview(QMainWindow):
         self.dirty: bool = False
         self.filepath: Path = None
         self.ui.tableview_days.setModel(self.model)
+        self.model.setup_column_width(self.ui.tableview_days)
         self.ui.tableview_days.setItemDelegateForColumn(self.model.HEADERS.index("came"), self.delegate)
         self.ui.tableview_days.setItemDelegateForColumn(self.model.HEADERS.index("went"), self.delegate)
 

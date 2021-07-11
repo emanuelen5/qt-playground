@@ -68,6 +68,12 @@ class TableModel(QAbstractTableModel):
         self.session_settings = SessionSettings()
         self.dataChanged.connect(lambda *args: self.fetch_data())
 
+    def setup_column_width(self, view: QtWidgets.QTableView):
+        """ Set up the preferred width of each column """
+        for i, h in enumerate(self.HEADERS):
+            sizepolicy = QtWidgets.QHeaderView.ResizeToContents if h != "note" else QtWidgets.QHeaderView.Stretch
+            view.horizontalHeader().setSectionResizeMode(i, sizepolicy)
+
     def fetch_data(self):
         if self.session_settings.time_view_type == TimeViewType.AROUND_DAY:
             start_day = self.session_settings.view_date - timedelta(days=10)
