@@ -117,7 +117,7 @@ class TableModel(QAbstractTableModel):
             col_name = self.HEADERS[index.column()]
             if col_name in ("came", "went"):
                 if d is None:
-                    return "---"
+                    return "---" if role == Qt.DisplayRole else datetime.now().time()
                 elif role == Qt.DisplayRole:
                     return d.strftime("%H:%M:%S")
                 elif role == Qt.EditRole:
@@ -149,16 +149,19 @@ class TableModel(QAbstractTableModel):
         col_name = self.HEADERS[index.column()]
         if day not in testdata.test_table_days:
             testdata.test_table_days[day] = dict(came=datetime.now().time(), went=datetime.now().time(), note="")
-        if col_name in ("came", "went"):
+        if col_name == "came":
             testdata.test_table_days[day][col_name] = value
-            self.dataChanged.emit(index, index, [])
-            return True
+            testdata.test_table_days[day]["went"] = max(value, testdata.test_table_days[day]["went"])
+        elif col_name == "went":
+            testdata.test_table_days[day][col_name] = value
+            testdata.test_table_days[day]["came"] = min(value, testdata.test_table_days[day]["came"])
         elif col_name in ("note", ):
-            testdata.test_table_days[day]["note"] = value
-            self.dataChanged.emit(index, index, [])
-            return True
-        logger.error(f"Unhandled column {col_name}")
-        return False
+            testdata.test_table_days[day][col_name] = value
+        else:
+            logger.error(f"Unhandled column {col_name}")
+            return False
+        self.dataChanged.emit(index, index, [])
+        return True
 
     def headerData(self, section: int, orientation: Qt.Orientation, role: int):
         if orientation == Qt.Vertical:
