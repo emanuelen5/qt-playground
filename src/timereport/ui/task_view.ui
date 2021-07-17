@@ -103,9 +103,6 @@
         <property name="text">
          <string>Add time</string>
         </property>
-        <property name="shortcut">
-         <string>Ctrl+S</string>
-        </property>
        </widget>
       </item>
      </layout>
@@ -148,6 +145,7 @@
     </property>
     <addaction name="actionOpen"/>
     <addaction name="actionSave"/>
+    <addaction name="actionSave_As"/>
     <addaction name="separator"/>
     <addaction name="actionExit"/>
    </widget>
@@ -184,7 +182,8 @@
     <bool>false</bool>
    </property>
    <property name="icon">
-    <iconset theme="document-open"/>
+    <iconset theme="document-open">
+     <normaloff>.</normaloff>.</iconset>
    </property>
    <property name="text">
     <string>Open</string>
@@ -195,7 +194,8 @@
   </action>
   <action name="actionSave">
    <property name="icon">
-    <iconset theme="document-save"/>
+    <iconset theme="document-save">
+     <normaloff>.</normaloff>.</iconset>
    </property>
    <property name="text">
     <string>Save</string>
@@ -206,7 +206,8 @@
   </action>
   <action name="actionExit">
    <property name="icon">
-    <iconset theme="application-exit"/>
+    <iconset theme="application-exit">
+     <normaloff>.</normaloff>.</iconset>
    </property>
    <property name="text">
     <string>Exit</string>
@@ -217,7 +218,8 @@
   </action>
   <action name="actionAdd_spent_time">
    <property name="icon">
-    <iconset theme="add"/>
+    <iconset theme="add">
+     <normaloff>.</normaloff>.</iconset>
    </property>
    <property name="text">
     <string>Add time spent</string>
@@ -228,18 +230,20 @@
   </action>
   <action name="actionUpdate_came_went_time">
    <property name="icon">
-    <iconset theme="time"/>
+    <iconset theme="time">
+     <normaloff>.</normaloff>.</iconset>
    </property>
    <property name="text">
     <string>Update came/went time</string>
    </property>
    <property name="shortcut">
-    <string>U</string>
+    <string>Ctrl+G</string>
    </property>
   </action>
   <action name="actionDay_view">
    <property name="icon">
-    <iconset theme="calendar"/>
+    <iconset theme="calendar">
+     <normaloff>.</normaloff>.</iconset>
    </property>
    <property name="text">
     <string>Day view</string>
@@ -250,7 +254,8 @@
   </action>
   <action name="actionGotoToday">
    <property name="icon">
-    <iconset theme="calendar"/>
+    <iconset theme="calendar">
+     <normaloff>.</normaloff>.</iconset>
    </property>
    <property name="text">
     <string>Today</string>
@@ -261,7 +266,8 @@
   </action>
   <action name="actionGotoPrevious">
    <property name="icon">
-    <iconset theme="previous"/>
+    <iconset theme="previous">
+     <normaloff>.</normaloff>.</iconset>
    </property>
    <property name="text">
     <string>Previous</string>
@@ -272,7 +278,8 @@
   </action>
   <action name="actionGotoNext">
    <property name="icon">
-    <iconset theme="next"/>
+    <iconset theme="next">
+     <normaloff>.</normaloff>.</iconset>
    </property>
    <property name="text">
     <string>Next</string>
@@ -303,6 +310,17 @@
    </property>
    <property name="shortcut">
     <string>J</string>
+   </property>
+  </action>
+  <action name="actionSave_As">
+   <property name="icon">
+    <iconset theme="document-save-as"/>
+   </property>
+   <property name="text">
+    <string>Save As</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Alt+S</string>
    </property>
   </action>
  </widget>

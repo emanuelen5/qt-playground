@@ -1,3 +1,4 @@
 /.timereport-session.json
 *.egg-info
 /build/
+*.json
