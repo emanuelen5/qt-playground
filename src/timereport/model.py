@@ -59,13 +59,13 @@ class TableModel(QAbstractTableModel):
     HEADERS = ("week", "weekday", "came", "went", "total", "note")
     data_updated = Signal(date, date, date)
 
-    def __init__(self):
+    def __init__(self, session_settings: SessionSettings):
         super().__init__()
         self._data_lock = threading.Lock()
         self._data: dict[date, Row] = {}
         self.columns = []
         self.headers = []
-        self.session_settings = SessionSettings()
+        self.session_settings = session_settings
         self.dataChanged.connect(lambda *args: self.fetch_data())
 
     def setup_column_width(self, view: QtWidgets.QTableView):
@@ -73,6 +73,7 @@ class TableModel(QAbstractTableModel):
         for i, h in enumerate(self.HEADERS):
             sizepolicy = QtWidgets.QHeaderView.ResizeToContents if h != "note" else QtWidgets.QHeaderView.Stretch
             view.horizontalHeader().setSectionResizeMode(i, sizepolicy)
+        view.verticalHeader().setSectionResizeMode(QtWidgets.QHeaderView.ResizeToContents)
 
     def fetch_data(self):
         if self.session_settings.time_view_type == TimeViewType.AROUND_DAY:

@@ -6,8 +6,9 @@ from pathlib import Path
 import sys
 from logging import getLogger
 from typing import Union
+from .gui_settings import SettingsDialog
 from .model import TableModel, TimeDelegate
-from .session import TimeViewType
+from .session import TimeViewType, SessionSettings
 from . import testdata
 from .testdata import load_from_json, save_as_json
 from .ui.task_view import Ui_MainWindow
@@ -23,7 +24,8 @@ class TimeReportOverview(QMainWindow):
         super().__init__()
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
-        self.model = TableModel()
+        self.session_settings = SessionSettings()
+        self.model = TableModel(self.session_settings)
         self.delegate = TimeDelegate()
         self.dirty: bool = False
         self.filepath: Path = None
@@ -44,10 +46,11 @@ class TimeReportOverview(QMainWindow):
         self.ui.actionSave.triggered.connect(lambda: self.save_db_to_file(self.filepath))
         self.ui.actionSave_As.triggered.connect(lambda: self.save_db_to_file(None))
         self.ui.actionOpen.triggered.connect(lambda: self.open_db_from_file())
+        self.ui.actionSettings.triggered.connect(lambda: self.open_settings())
         self.model.data_updated.connect(self.update_current_period)
 
-        self.model.session_settings.load(Path(".timereport-session.json"))
-        self.resize(self.model.session_settings.window_size)
+        self.session_settings.load(Path(".timereport-session.json"))
+        self.resize(self.session_settings.window_size)
         self.model.fetch_data()
 
     def closeEvent(self, event: QCloseEvent) -> None:
@@ -65,10 +68,10 @@ class TimeReportOverview(QMainWindow):
                 self.ui.statusbar.showMessage("Canceled. Database still has unsaved changes.")
                 event.ignore()
         logger.debug("Saving session settings")
-        self.model.session_settings.save(Path(".timereport-session.json"))
+        self.session_settings.save(Path(".timereport-session.json"))
 
     def resizeEvent(self, event: QResizeEvent) -> None:
-        self.model.session_settings.window_size = event.size()
+        self.session_settings.window_size = event.size()
 
     def get_save_location(self) -> Union[Path, None]:
         # Cannot use QFileDialog.saveFileDialog with a default saving suffix, so using this way
@@ -108,12 +111,16 @@ class TimeReportOverview(QMainWindow):
         self.model.fetch_data()
         self.ui.statusbar.showMessage(f"Opened database {filepath}", 4000)
 
+    def open_settings(self):
+        dialog = SettingsDialog(self.session_settings, parent=self)
+        dialog.exec()
+
     def update_current_period(self, view_date: date, start_date: date, end_date: date):
-        if self.model.session_settings.time_view_type == TimeViewType.MONTH:
+        if self.session_settings.time_view_type == TimeViewType.MONTH:
             period = view_date.strftime("%B, %Y")
-        elif self.model.session_settings.time_view_type == TimeViewType.WEEK:
+        elif self.session_settings.time_view_type == TimeViewType.WEEK:
             period = f"Week {view_date.strftime('%V, %Y')}"
-        elif self.model.session_settings.time_view_type == TimeViewType.DAY:
+        elif self.session_settings.time_view_type == TimeViewType.DAY:
             period = str(view_date)
         else:
             period = f"{start_date} - {end_date}"
