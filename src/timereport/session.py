@@ -1,6 +1,6 @@
 from PySide6.QtCore import QSize
 from dataclasses import dataclass, field
-from datetime import date, datetime
+from datetime import date, datetime, time
 from enum import auto, Enum, unique
 from logging import getLogger
 from pathlib import Path
@@ -24,13 +24,16 @@ class SessionSettings:
     view_date: date = date.today()
     window_size: QSize = QSize(300, 600)
     recent_files: list[Path] = field(default_factory=lambda: [])
+    lunch_interval: list[time, time] = field(default_factory=lambda: [time(11, 30), time(12, 00)])
 
     # Serialize function, Deserialize function
     serdes = {
         "time_view_type": (lambda v: v.name, lambda s: TimeViewType[s]),
         "view_date": (lambda v: v.strftime("%Y-%m-%d"), lambda s: datetime.strptime(s, "%Y-%m-%d").date()),
         "window_size": (lambda v: dict(w=v.width(), h=v.height()), lambda s: QSize(s["w"], s["h"])),
-        "recent_files": (lambda v: [str(f.absolute()) for f in v], lambda s: [Path(f) for f in s])
+        "recent_files": (lambda v: [str(f.absolute()) for f in v], lambda s: [Path(f) for f in s]),
+        "lunch_interval": (lambda v: [str(d.strftime("%H:%M")) for d in v],
+                           lambda ss: [datetime.strptime(s, "%H:%M").time() for s in ss])
     }
 
     def load(self, filepath: Path):
