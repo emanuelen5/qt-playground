@@ -6,6 +6,7 @@ from pathlib import Path
 import sys
 from logging import getLogger
 from typing import Union
+from .gui_projects import ProjectWindow
 from .gui_settings import SettingsDialog
 from .model import TableModel, TimeDelegate
 from .session import TimeViewType, SessionSettings
@@ -29,6 +30,7 @@ class TimeReportOverview(QMainWindow):
         self.delegate = TimeDelegate()
         self.dirty: bool = False
         self.filepath: Path = None
+        self.projects = ProjectWindow(self)
         self.ui.tableview_days.setModel(self.model)
         self.model.setup_column_width(self.ui.tableview_days)
         self.ui.tableview_days.setItemDelegateForColumn(self.model.HEADERS.index("came"), self.delegate)
@@ -47,6 +49,7 @@ class TimeReportOverview(QMainWindow):
         self.ui.actionSave_As.triggered.connect(lambda: self.save_db_to_file(None))
         self.ui.actionOpen.triggered.connect(lambda: self.open_db_from_file())
         self.ui.actionSettings.triggered.connect(lambda: self.open_settings())
+        self.ui.actionProjects.triggered.connect(lambda: self.show_project_window_on_top())
         self.model.data_updated.connect(self.update_current_period)
 
         self.session_settings.load(Path(".timereport-session.json"))
@@ -114,6 +117,10 @@ class TimeReportOverview(QMainWindow):
     def open_settings(self):
         dialog = SettingsDialog(self.session_settings, parent=self)
         dialog.exec()
+
+    def show_project_window_on_top(self):
+        self.projects.show()
+        self.projects.activateWindow()
 
     def update_current_period(self, view_date: date, start_date: date, end_date: date):
         if self.session_settings.time_view_type == TimeViewType.MONTH:

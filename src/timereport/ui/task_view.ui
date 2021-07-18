@@ -156,6 +156,7 @@
     </property>
     <addaction name="actionAdd_spent_time"/>
     <addaction name="actionUpdate_came_went_time"/>
+    <addaction name="actionProjects"/>
    </widget>
    <addaction name="menuFile"/>
    <addaction name="menuEdit"/>
@@ -327,10 +328,19 @@
   </action>
   <action name="actionSettings">
    <property name="icon">
-    <iconset theme="document-properties"/>
+    <iconset theme="document-properties">
+     <normaloff>.</normaloff>.</iconset>
    </property>
    <property name="text">
     <string>Settings</string>
+   </property>
+  </action>
+  <action name="actionProjects">
+   <property name="icon">
+    <iconset theme="address-book-new"/>
+   </property>
+   <property name="text">
+    <string>Projects</string>
    </property>
   </action>
  </widget>
