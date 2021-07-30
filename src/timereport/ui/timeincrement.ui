@@ -6,23 +6,32 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>258</width>
+    <width>224</width>
     <height>179</height>
    </rect>
+  </property>
+  <property name="sizePolicy">
+   <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+    <horstretch>0</horstretch>
+    <verstretch>0</verstretch>
+   </sizepolicy>
   </property>
   <property name="windowTitle">
    <string>Dialog</string>
   </property>
   <layout class="QFormLayout" name="formLayout_2">
+   <property name="sizeConstraint">
+    <enum>QLayout::SetFixedSize</enum>
+   </property>
    <item row="1" column="0">
-    <widget class="QLabel" name="label">
+    <widget class="QLabel" name="lbl_input">
      <property name="text">
       <string>Input</string>
      </property>
     </widget>
    </item>
    <item row="2" column="0">
-    <widget class="QLabel" name="label_2">
+    <widget class="QLabel" name="lbl_result">
      <property name="text">
       <string>Increment</string>
      </property>
@@ -42,10 +51,10 @@
         <string> hours</string>
        </property>
        <property name="minimum">
-        <number>-24</number>
+        <number>-1000</number>
        </property>
        <property name="maximum">
-        <number>24</number>
+        <number>1000</number>
        </property>
       </widget>
      </item>
@@ -61,10 +70,10 @@
         <string> minutes</string>
        </property>
        <property name="minimum">
-        <number>-3600</number>
+        <number>-60000</number>
        </property>
        <property name="maximum">
-        <number>3600</number>
+        <number>60000</number>
        </property>
       </widget>
      </item>
@@ -74,16 +83,6 @@
     <widget class="QLabel" name="label_3">
      <property name="text">
       <string>Result</string>
-     </property>
-    </widget>
-   </item>
-   <item row="3" column="1">
-    <widget class="QTimeEdit" name="time_result">
-     <property name="enabled">
-      <bool>false</bool>
-     </property>
-     <property name="focusPolicy">
-      <enum>Qt::NoFocus</enum>
      </property>
     </widget>
    </item>
@@ -98,12 +97,16 @@
     </widget>
    </item>
    <item row="1" column="1">
-    <widget class="QTimeEdit" name="time_in">
-     <property name="enabled">
-      <bool>false</bool>
+    <widget class="QLabel" name="time_in">
+     <property name="text">
+      <string>00:00</string>
      </property>
-     <property name="focusPolicy">
-      <enum>Qt::NoFocus</enum>
+    </widget>
+   </item>
+   <item row="3" column="1">
+    <widget class="QLabel" name="time_result">
+     <property name="text">
+      <string>00:00</string>
      </property>
     </widget>
    </item>
@@ -118,7 +121,7 @@
    <slot>accept()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>227</x>
+     <x>214</x>
      <y>159</y>
     </hint>
     <hint type="destinationlabel">
@@ -134,11 +137,11 @@
    <slot>reject()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>248</x>
+     <x>214</x>
      <y>165</y>
     </hint>
     <hint type="destinationlabel">
-     <x>257</x>
+     <x>223</x>
      <y>131</y>
     </hint>
    </hints>
