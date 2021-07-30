@@ -26,16 +26,20 @@ class TimeIncrement(QDialog):
         self.update_time()
 
     def update_time(self) -> None:
+        res_hours, res_minutes = self.get_result_time()
+        self.ui.time_result.setText(f"{res_hours: 2d}:{res_minutes:02d}")
+
+    def get_result_time(self) -> tuple[int, int]:
         res_hours, res_minutes = divmod((self.in_time.hour + self.ui.spin_hour.value()) * 60 +
                                         (self.in_time.minute + self.ui.spin_minutes.value()), 60)
-        self.ui.time_result.setText(f"{res_hours: 2d}:{res_minutes:02d}")
+        return res_hours, res_minutes
 
     def keyPressEvent(self, event: QtGui.QKeyEvent) -> bool:
         key = chr(event.key() & 0xFF).lower()
         if key == 'q' or event.key() == Qt.Key.Key_Escape:
             self.reject()
             return True
-        elif event.key() == Qt.Key.Key_Enter:
+        elif event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
             self.accept()
             return True
         return False
@@ -44,7 +48,18 @@ class TimeIncrement(QDialog):
         """ Propagate keypress events to the parent """
         if event.type() is QtCore.QEvent.KeyPress:
             return self.keyPressEvent(event)
-        return False
+        return super().eventFilter(target, event)
+
+    def exec(self) -> tuple[bool, int, int]:
+        """
+        :return: changed: bool, hours: int, minutes: int
+        """
+        accepted = super().exec()
+        print(accepted)
+        if accepted:
+            res_hours, res_minutes = self.get_result_time()
+            return True, res_hours, res_minutes
+        return False, self.in_time.hour, self.in_time.minute
 
 
 def main():
