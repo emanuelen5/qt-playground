@@ -45,7 +45,10 @@ class TimeIncrement(QDialog):
         return False
 
     def eventFilter(self, target: QtCore.QObject, event: QtCore.QEvent) -> bool:
-        """ Propagate keypress events to the parent """
+        """
+        Propagate keypress events to the parent.
+        See https://flylib.com/books/en/2.18.1/installing_event_filters.html
+        """
         if event.type() is QtCore.QEvent.KeyPress:
             return self.keyPressEvent(event)
         return super().eventFilter(target, event)
@@ -55,7 +58,6 @@ class TimeIncrement(QDialog):
         :return: changed: bool, hours: int, minutes: int
         """
         accepted = super().exec()
-        print(accepted)
         if accepted:
             res_hours, res_minutes = self.get_result_time()
             return True, res_hours, res_minutes
