@@ -63,8 +63,6 @@ class TableModel(QAbstractTableModel):
         super().__init__()
         self._data_lock = threading.Lock()
         self._data: dict[date, Row] = {}
-        self.columns = []
-        self.headers = []
         self.session_settings = session_settings
         self.dataChanged.connect(lambda *args: self.fetch_data())
 
