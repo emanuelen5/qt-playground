@@ -1,4 +1,5 @@
-from PySide6.QtWidgets import QApplication, QMainWindow, QTableView, QHeaderView, QWidget, QStyledItemDelegate, QDateEdit, QStyleOptionViewItem
+from PySide6.QtWidgets import QApplication, QMainWindow, QTableView, QHeaderView, QWidget, QStyledItemDelegate, \
+    QDateEdit, QStyleOptionViewItem, QMessageBox
 from PySide6.QtCore import QAbstractTableModel, QModelIndex, Qt
 from PySide6.QtGui import QFont, QColor
 from .ui.projects import Ui_MainWindow
@@ -105,7 +106,17 @@ class TableModel(QAbstractTableModel):
     def setData(self, index: QModelIndex, value: Any, role: int = Qt.EditRole) -> bool:
         col_name = self.HEADERS[index.column()]
         if col_name == "active":
-            self._data[index.row()][index.column()] = not self._data[index.row()][index.column()]
+            is_active = self._data[index.row()][index.column()]
+            warning_title = "Lock project?" if is_active else "Unlock project?"
+            warning_body = "Are you sure you want to you want to lock the project?\n" \
+                           "This will make it not show up as an alternative when " \
+                           "selecting projects for the time report." if is_active else \
+                "Are you sure you want to unlock the project? Only do this if you accidentally locked the project."
+            response = QMessageBox.warning(self.view, warning_title, warning_body,
+                                           QMessageBox.Ok | QMessageBox.Cancel, QMessageBox.Cancel)
+            if response != QMessageBox.Ok:
+                return False
+            self._data[index.row()][index.column()] = not is_active
             self.view.dataChanged(self.createIndex(index.row(), 0), self.createIndex(index.row(), 4))
         elif col_name == "start date":
             self._data[index.row()][index.column()] = value
