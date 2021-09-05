@@ -1,84 +1,63 @@
-from PySide6.QtWidgets import QApplication, QMainWindow
+from PySide6.QtWidgets import QApplication, QMainWindow, QTableView, QHeaderView, QItemDelegate
 from PySide6.QtCore import QAbstractTableModel, QModelIndex, Qt
-from PySide6.QtGui import QFont, QIcon
+from PySide6.QtGui import QFont, QColor
 from .ui.projects import Ui_MainWindow
 from .gui_new_project import NewProjectDialog
 import sys
-from datetime import datetime, time, timedelta
+from datetime import datetime
+from typing import Any
+from .testdata import test_table_projects
+from threading import Lock
 import logging
 
 logger = logging.getLogger(__name__)
 
 
+COLOR_GRAY = QColor(128, 128, 128)
+COLOR_WHITE = QColor(255, 255, 255)
+
+
 class TableModel(QAbstractTableModel):
-    HEADERS = ("id", "name", "description", "start_date", "is_active")
-    data_updated = Signal(date, date, date)
+    HEADERS = ("id", "name", "description", "start date", "active")
+
+    def __init__(self):
+        super().__init__()
+        self._data_lock = Lock()
+        self._data = test_table_projects
+
+    def setup_column_width(self, view: QTableView):
+        """ Set up the preferred width of each column """
+        for i, h in enumerate(self.HEADERS):
+            sizepolicy = QHeaderView.ResizeToContents if h != "description" else QHeaderView.Stretch
+            view.horizontalHeader().setSectionResizeMode(i, sizepolicy)
+        view.verticalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
 
     def data(self, index: QModelIndex, role: Qt.ItemDataRole):
-        with self._data_lock:
-            day = sorted(self._data.keys())[index.row()]
-            row = self._data[day]
-        data = [day.isocalendar().week, day.strftime("%A"), row.came, row.went, row.total, row.note]
+        data = self._data[index.row()]
+        col_name = self.HEADERS[index.column()]
 
-        if role in (Qt.DisplayRole, Qt.EditRole):
-            d = data[index.column()]
-            col_name = self.HEADERS[index.column()]
-            if col_name in ("came", "went"):
-                if d is None:
-                    return "---" if role == Qt.DisplayRole else datetime.now().time()
-                elif role == Qt.DisplayRole:
-                    return d.strftime("%H:%M:%S")
-                elif role == Qt.EditRole:
-                    return d
-            elif col_name in ("total", ):
-                if d is None:
-                    return ""
-                else:
-                    return str(d)
-            elif col_name in ("note", ):
-                return d
-            return str(d)
+        if self.HEADERS[index.column()] == "active":
+            if role == Qt.CheckStateRole:
+                return data[index.column()]
+        else:
+            if role in (Qt.DisplayRole, Qt.EditRole):
+                d = data[index.column()]
+                return str(d)
 
-        elif role == Qt.BackgroundRole:
-            d = data[]
+        if role == Qt.BackgroundRole:
+            return COLOR_GRAY if data[self.HEADERS.index("active")] else COLOR_GRAY
 
     def flags(self, index: QModelIndex) -> Qt.ItemFlags:
-        def_flags = Qt.ItemIsSelectable
-        col_name = self.HEADERS[index.column()]
-        if col_name in ("came", "went", "note"):
-            return Qt.ItemIsEditable | Qt.ItemIsEnabled | def_flags
-        return def_flags
-
-    def setData(self, index: QModelIndex, value: Union[str, time], role: int = Qt.EditRole) -> bool:
-        day = sorted(self._data.keys())[index.row()]
-        col_name = self.HEADERS[index.column()]
-        if day not in testdata.test_table_days:
-            testdata.test_table_days[day] = dict(came=datetime.now().time(), went=datetime.now().time(), note="")
-        if col_name == "came":
-            testdata.test_table_days[day][col_name] = value
-            testdata.test_table_days[day]["went"] = max(value, testdata.test_table_days[day]["went"])
-        elif col_name == "went":
-            testdata.test_table_days[day][col_name] = value
-            testdata.test_table_days[day]["came"] = min(value, testdata.test_table_days[day]["came"])
-        elif col_name in ("note", ):
-            testdata.test_table_days[day][col_name] = value
-        else:
-            logger.error(f"Unhandled column {col_name}")
-            return False
-        self.dataChanged.emit(index, index, [])
-        return True
+        if index.column() == self.HEADERS.index("active"):
+            return Qt.ItemIsEnabled | Qt.ItemIsUserCheckable
+        return Qt.ItemIsEditable | Qt.ItemIsEnabled | Qt.ItemIsSelectable
 
     def headerData(self, section: int, orientation: Qt.Orientation, role: int):
-        if orientation == Qt.Vertical:
-            with self._data_lock:
-                day = sorted(self._data.keys())[section]
-                row = self._data[day]
-
         if role == Qt.DisplayRole:
             if orientation == Qt.Horizontal:
                 return self.HEADERS[section].capitalize()
             elif orientation == Qt.Vertical:
-                return str(day)
+                return ""
 
         elif role == Qt.FontRole:
             font = QFont()
@@ -87,20 +66,21 @@ class TableModel(QAbstractTableModel):
 
         elif role == Qt.BackgroundRole:
             if orientation == Qt.Vertical:
-                if day == datetime.today().date():
-                    return RowColors.Today.value
-                elif day.weekday() >= 5:
-                    return RowColors.Weekend.value
-
-        elif role == Qt.DecorationRole:
-            if orientation == Qt.Vertical:
-                return QIcon.fromTheme("emblem-default") if row.total else \
-                    QIcon.fromTheme("image-missing") if day.weekday() < 5 and day <= date.today() else \
-                        None
+                data = test_table_projects[section]
+                return COLOR_GRAY if data[self.HEADERS.index("active")] else COLOR_GRAY
 
         elif role == Qt.TextAlignmentRole:
             if orientation == Qt.Vertical:
                 return Qt.AlignRight
+
+    def setData(self, index: QModelIndex, value: Any, role: int = Qt.EditRole) -> bool:
+        if self.HEADERS[index.column()] == "active":
+            self._data[index.row()][index.column()] = not self._data[index.row()][index.column()]
+        elif self.HEADERS[index.column()] == "start date":
+            self._data[index.row()][index.column()] = datetime.strptime(value, "%Y-%m-%d").date()
+        else:
+            self._data[index.row()][index.column()] = value
+        return True
 
     def rowCount(self, index: QModelIndex) -> int:
         return len(self._data)
@@ -109,14 +89,15 @@ class TableModel(QAbstractTableModel):
         return len(self.HEADERS)
 
 
-
 class ProjectWindow(QMainWindow):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
 
-        self.ui.tableView.setModel()
+        self.model = TableModel()
+        self.ui.tableView.setModel(self.model)
+        self.model.setup_column_width(self.ui.tableView)
 
         self.ui.actionNew.triggered.connect(self.on_new_project)
         self.new_project_dialog = NewProjectDialog(self)

@@ -15,6 +15,13 @@ test_table_days = {
     } for i in range(-2, 3)
 }
 
+# A test database with some projects
+test_table_projects = [
+    ["id-12345", "name-12345", "description", (datetime.today() - timedelta(days=5)).date(), False],
+    ["id-23456", "name-23456", "description", (datetime.today() - timedelta(days=1)).date(), True],
+    ["id-34567", "name-34567", "description", (datetime.today()).date(), True],
+]
+
 test_table_days[sorted(test_table_days.keys())[0]]["note"] = "Here is a testnote with some details about the specific date"
 
 
