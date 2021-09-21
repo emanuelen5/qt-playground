@@ -21,7 +21,7 @@ COLOR_WHITE = QColor(255, 255, 255)
 class DateDelegate(QStyledItemDelegate):
     def createEditor(self, parent: QWidget, option: QStyleOptionViewItem, index: QModelIndex):
         editor = QDateEdit(parent)
-        editor.setDisplayFormat("%Y-%m-%d")
+        editor.setDisplayFormat("yyyy-MM-dd")
         return editor
 
     def setEditorData(self, editor: QDateEdit, index: QModelIndex):
@@ -151,6 +151,7 @@ class ProjectWindow(QMainWindow):
         if accepted:
             id_, name, description, start_date = response
             print(id_, name, description, start_date)
+            logger.info(f"Creating new project with {id_=}, {name=}, {description=}, {start_date=}")
 
 
 def main():

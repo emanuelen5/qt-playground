@@ -13,11 +13,12 @@ class NewProjectDialog(QDialog):
         self.ui.setupUi(self)
 
     def exec(self) -> Union[tuple[RESPONSE, bool], tuple[None, bool]]:
+        self.ui.date_start.setDate(datetime.today().date())
         accepted = super().exec()
         if not accepted:
             return None, False
         id_ = self.ui.input_id.text()
         name = self.ui.input_name.text()
         description = self.ui.input_description.text()
-        start_date = self.ui.date_start.dateTime().toPython()
+        start_date = self.ui.date_start.dateTime().toPython().date()
         return (id_, name, description, start_date), True
